@@ -49,3 +49,7 @@ $ OS=Windows_NT make
 ## Windows
 Probably really similarly to the cross-compiling step on Linux.
 
+# Contributing
+Help is always welcome.
+
+Would not be possible without [DmitryGR's work](https://dmitry.gr/?r=05.Projects&proj=28.%20pokewalker) on hacking and documenting the Pokéwalker, or [PoroCYon's dumper](https://git.titandemo.org/PoroCYon/pokewalker-rom-dumper).
