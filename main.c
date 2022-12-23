@@ -7,6 +7,9 @@
 #include <time.h>
 #include <SDL2/SDL.h>
 #include <stdarg.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include "ssu.h"
 #include "eeprom.h"
@@ -22,6 +25,7 @@
 
 #define STATES(si, sj, sk, sl, sm, sn) ctx->i = si; ctx->j = sj; ctx->k = sk; ctx->l = sl; ctx->m = sm; ctx->n = sn;
 
+#ifdef PKW_DEBUG
 __attribute__ ((unused)) static void debug_internal(const char *format, ...) {
     if (1) {
         va_list args;
@@ -32,6 +36,7 @@ __attribute__ ((unused)) static void debug_internal(const char *format, ...) {
         fflush(stdout);
     }
 }
+#endif
 
 //#define PKW_DEBUG
 #ifdef PKW_DEBUG
@@ -43,8 +48,13 @@ __attribute__ ((unused)) static void debug_internal(const char *format, ...) {
 #define UNIMPL(...)
 //debug_internal(__VA_ARGS__)
 
+#ifdef _MSC_VER
+#define likely(x)       (x)
+#define unlikely(x)     (x)
+#else
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
+#endif
 
 #define SCREEN_WIDTH 96
 #define SCREEN_HEIGHT 64
@@ -70,18 +80,18 @@ typedef struct mm_reg {
     uint16_t addr;
     enum REGISTER_TYPE type;
     union {
-        uint8_t  (*read8)(void*);
-        uint16_t (*read16)(void*);
+        uint8_t  (*read8)(uintptr_t);
+        uint16_t (*read16)(uintptr_t);
     };
     union {
-        void (*write8)(void*, uint8_t);
-        void (*write16)(void*, uint16_t);
+        void (*write8)(uintptr_t, uint8_t);
+        void (*write16)(uintptr_t, uint16_t);
     };
     int ctx_offset;
 } mm_reg_t;
 
-#define MM_REG8( _name, _addr, _type, _read, _write, _desc, _ctx_off) { .name = _name, .desc = _desc, .addr = _addr, .type = _type, .read8 = (uint8_t (*)(void *)) _read, .write8 = (void (*)(void *, uint8_t)) _write, .ctx_offset = _ctx_off}
-#define MM_REG16(_name, _addr, _type, _read, _write, _desc, _ctx_off) { .name = _name, .desc = _desc, .addr = _addr, .type = _type, .read16 = (uint16_t (*)(void *)) _read, .write16 = (void (*)(void *, uint16_t)) _write, .ctx_offset = _ctx_off}
+#define MM_REG8( _name, _addr, _type, _read, _write, _desc, _ctx_off) { .name = _name, .desc = _desc, .addr = _addr, .type = _type, .read8 = (uint8_t (*)(uintptr_t)) _read, .write8 = (void (*)(uintptr_t, uint8_t)) _write, .ctx_offset = _ctx_off}
+#define MM_REG16(_name, _addr, _type, _read, _write, _desc, _ctx_off) { .name = _name, .desc = _desc, .addr = _addr, .type = _type, .read16 = (uint16_t (*)(uintptr_t)) _read, .write16 = (void (*)(uintptr_t, uint16_t)) _write, .ctx_offset = _ctx_off}
 
 //MM_REG("UNK_REG",   0xF088, REGTYPE_DBW8_ACCS2,  NULL, NULL, "Unknown IO Reg (TODO?)", 0),
 
@@ -818,6 +828,9 @@ void fill_audio(void* userdata, uint8_t* stream, int len) {
 
 static int sdl_init() {
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+#ifdef __EMSCRIPTEN__
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
+#endif
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		fprintf(stderr, "SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return 0;
@@ -1064,7 +1077,7 @@ static uint8_t read8(pw_context_t *ctx, uint16_t addr) {
                 } else {
                     ON_CHIP_MOD8_3_ACCESS;
                 }
-                return reg->read8(((void*)ctx) + reg->ctx_offset);
+                return reg->read8(((uintptr_t)ctx) + reg->ctx_offset);
             }
             UNIMPL("read8: unimplemented register %s [%x]\n", reg->name, ctx->ip);
             return 0;
@@ -1091,7 +1104,7 @@ static uint16_t read16(pw_context_t *ctx, uint32_t addr) {
         if (reg && reg->type == REGTYPE_DBW16_ACCS2) {
             if (reg->read16) {
                 ON_CHIP_MOD16_2_ACCESS;
-                return reg->read16(((void*)ctx) + reg->ctx_offset);
+                return reg->read16(((uintptr_t)ctx) + reg->ctx_offset);
             }
             UNIMPL("read16: unimplemented register %s [%x]\n", reg->name, ctx->ip);
             return 0;
@@ -1125,7 +1138,7 @@ static void write8(pw_context_t *ctx, uint16_t addr, uint8_t val) {
                 } else {
                     ON_CHIP_MOD8_3_ACCESS;
                 }
-                reg->write8(((void*)ctx) + reg->ctx_offset, val);
+                reg->write8(((uintptr_t)ctx) + reg->ctx_offset, val);
             } else {
                 UNIMPL("write8: unimplemented register %s [%x]\n", reg->name, ctx->ip);
             }
@@ -1149,7 +1162,7 @@ static void write16(pw_context_t *ctx, uint16_t addr, uint16_t val) {
         if (reg && reg->type == REGTYPE_DBW16_ACCS2) {
             if (reg->write16) {
                 ON_CHIP_MOD16_2_ACCESS;
-                reg->write16(((void*)ctx) + reg->ctx_offset, val);
+                reg->write16(((uintptr_t)ctx) + reg->ctx_offset, val);
             } else {
                 UNIMPL("write16: unimplemented register %s [%x]\n", reg->name, ctx->ip);
             }
@@ -1467,7 +1480,9 @@ static int branch_condition(pw_context_t *ctx, uint32_t cc) {
         case 0xF: // BLE
             return get_ccr_bit(ctx, CCR_Z) || (get_ccr_bit(ctx, CCR_N) ^ get_ccr_bit(ctx, CCR_V));
         default:
-            __builtin_unreachable();
+#ifndef _MSC_VER
+    __builtin_unreachable();
+#endif // !_MSC_VER
             assert(0);
     }
 }
@@ -3169,14 +3184,15 @@ static uint8_t sdl_poll(uint8_t keys_pressed, int *should_redraw) {
                 keys_pressed &= ~mouse_to_button();
                 break;
             default:
+                break;
         }
     }
     return keys_pressed;
 }
 
-const int STATES_PER_SECOND = 1600000;
-const int EXEC_BATCH_MS = 1000/60;
-const int STATES_PER_BATCH = STATES_PER_SECOND * (EXEC_BATCH_MS / 1000.0);
+#define STATES_PER_SECOND 1600000
+#define EXEC_BATCH_MS (1000 / 60)
+#define STATES_PER_BATCH (STATES_PER_SECOND * (EXEC_BATCH_MS / 1000.0))
 
 static void tmrw_update(pw_context_t *ctx, int states) {
     if (!ctx->int_enabled) {
@@ -3204,6 +3220,52 @@ static void tmrw_update(pw_context_t *ctx, int states) {
     //printf("tcnt %d\n", ctx->tcnt);
 }
 
+typedef struct render_context_t {
+    pw_context_t* ctx;
+    int* should_redraw;
+    long* count;
+} render_context_t;
+
+#ifdef __EMSCRIPTEN__
+void loop(void *render_ctx) {
+#else
+void loop(uintptr_t render_ctx) {
+#endif
+#ifndef __EMSCRIPTEN__
+    Uint32 start = SDL_GetPerformanceCounter();
+#endif // !__EMSCRIPTEN__
+    render_context_t *context = (render_context_t*)render_ctx;
+    while ((*(*context).ctx).states < STATES_PER_BATCH) {
+        int old_states = (*(*context).ctx).states;
+        pw_step((*context).ctx);
+        tmrw_update((*context).ctx, (*(*context).ctx).states - old_states);
+        (*(*context).count)++;
+    }
+    //rtc_update(&ctx.rtc);
+    //int old_keys = ctx.keys_pressed;
+    (*(*context).ctx).keys_pressed = sdl_poll((*(*context).ctx).keys_pressed, (*context).should_redraw);
+    // TODO: maybe invert keys pressed ?
+    portb_update(&(*(*context).ctx).portb, (*(*context).ctx).keys_pressed);
+    if ((*(*context).should_redraw)) {
+        sdl_draw(&(*(*context).ctx).lcd);
+        (*(*context).should_redraw) = 0;
+    }
+
+#ifndef __EMSCRIPTEN__
+    Uint32 end = SDL_GetPerformanceCounter();
+    float seconds_elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
+    int ms_to_sleep = EXEC_BATCH_MS - (int)(seconds_elapsed * 1000);
+
+    // printf("Batch complete: %d states in %.6f s; sleeping for %d ms\n", (*(*context).ctx).states, seconds_elapsed, ms_to_sleep);
+
+    if (ms_to_sleep > 0) {
+        SDL_Delay(ms_to_sleep);
+    }
+#endif // !__EMSCRIPTEN__
+
+    (*(*context).ctx).states = 0;
+}
+
 int main(int argc, char *argv[]) {
     pw_context_t ctx;
     int should_redraw = 0;
@@ -3221,38 +3283,21 @@ int main(int argc, char *argv[]) {
         int imm_rte = addr != 0xffff && peek16(&ctx, addr) == 0x5670;
         printf("[%2d] %-18s: %.4x%s\n", i, int_names[i], addr, imm_rte ? " [RTE]" : "");
     }
-
+    
     long count = 0;
+
+    render_context_t render_context;
+    render_context.ctx = &ctx;
+    render_context.should_redraw = &should_redraw;
+    render_context.count = &count;
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(loop, &render_context, -1, 1);
+#else
     while (!halt) {
-        struct timespec start, end;
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        while (ctx.states < STATES_PER_BATCH) {
-            int old_states = ctx.states;
-            pw_step(&ctx);
-            tmrw_update(&ctx, ctx.states - old_states);
-            count++;
-        }
-        //rtc_update(&ctx.rtc);
-        //int old_keys = ctx.keys_pressed;
-        ctx.keys_pressed = sdl_poll(ctx.keys_pressed, &should_redraw);
-        // TODO: maybe invert keys pressed ?
-        portb_update(&ctx.portb, ctx.keys_pressed);
-        if (should_redraw) {
-            sdl_draw(&ctx.lcd);
-            should_redraw = 0;
-        }
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        int ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
-        int ms_to_sleep = EXEC_BATCH_MS - ms;
-
-        //printf("Batch complete: %d states in %d ms; sleeping for %d ms\n", ctx.states, ms, ms_to_sleep);
-
-        if (ms_to_sleep > 0) {
-            SDL_Delay(ms_to_sleep);
-        }
-
-        ctx.states = 0;
+        loop(&render_context);
     }
+#endif
     
     printf("Executed %ld steps!\n", count);
     sdl_quit();
