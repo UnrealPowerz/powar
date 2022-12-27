@@ -1,7 +1,7 @@
 import Factory from "./powar.js";
 
-const $i = document.getElementById;
-const $q = document.querySelector;
+const $i = document.getElementById.bind(document);
+const $q = document.querySelector.bind(document);
 
 const canvas = $i("canvas");
 
