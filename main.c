@@ -3235,20 +3235,20 @@ void loop(uintptr_t render_ctx) {
     Uint32 start = SDL_GetPerformanceCounter();
 #endif // !__EMSCRIPTEN__
     render_context_t *context = (render_context_t*)render_ctx;
-    while ((*(*context).ctx).states < STATES_PER_BATCH) {
-        int old_states = (*(*context).ctx).states;
-        pw_step((*context).ctx);
-        tmrw_update((*context).ctx, (*(*context).ctx).states - old_states);
-        (*(*context).count)++;
+    while (context->ctx->states < STATES_PER_BATCH) {
+        int old_states = context->ctx->states;
+        pw_step(context->ctx);
+        tmrw_update(context->ctx, context->ctx->states - old_states);
+        (*(context->count))++;
     }
     //rtc_update(&ctx.rtc);
     //int old_keys = ctx.keys_pressed;
-    (*(*context).ctx).keys_pressed = sdl_poll((*(*context).ctx).keys_pressed, (*context).should_redraw);
+    context->ctx->keys_pressed = sdl_poll(context->ctx->keys_pressed, context->should_redraw);
     // TODO: maybe invert keys pressed ?
-    portb_update(&(*(*context).ctx).portb, (*(*context).ctx).keys_pressed);
-    if ((*(*context).should_redraw)) {
-        sdl_draw(&(*(*context).ctx).lcd);
-        (*(*context).should_redraw) = 0;
+    portb_update(&context->ctx->portb, context->ctx->keys_pressed);
+    if (*(context->should_redraw)) {
+        sdl_draw(&context->ctx->lcd);
+        *(context->should_redraw) = 0;
     }
 
 #ifndef __EMSCRIPTEN__
@@ -3263,7 +3263,7 @@ void loop(uintptr_t render_ctx) {
     }
 #endif // !__EMSCRIPTEN__
 
-    (*(*context).ctx).states = 0;
+    context->ctx->states = 0;
 }
 
 int main(int argc, char *argv[]) {
