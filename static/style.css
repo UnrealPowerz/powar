@@ -1,0 +1,106 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  --red-height: min(210px, 50vw);
+  --black-height: 55px;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    hsl(0, 58%, 46%) 0px,
+    hsl(0, 58%, 46%) var(--red-height),
+    rgba(0, 0, 0, 1) var(--red-height),
+    rgba(0, 0, 0, 1) calc(var(--red-height) + var(--black-height)),
+    rgba(255, 255, 255, 1) calc(var(--red-height) + var(--black-height)),
+    rgba(255, 255, 255, 1) 100%
+  );
+}
+
+canvas {
+  image-rendering: pixelated;
+  border-radius: 30px;
+  border: 16px solid black;
+  margin-top: 32px;
+  background-color: #acaea4;
+  padding: 10px;
+  max-width: calc(100vw - 64px);
+}
+
+.controls {
+  padding-top: 32px;
+  display: flex;
+  justify-content: space-between;
+}
+
+#left,
+#middle,
+#right {
+  --dimensions: 100px;
+  appearance: none;
+  background-color: white;
+  border: 3px solid hsl(345, 3%, 49%);
+  width: var(--dimensions);
+  height: var(--dimensions);
+  border-radius: var(--dimensions);
+
+  background-image: linear-gradient(
+    180deg,
+    hsl(0, 0%, 100%) 0px,
+    hsl(0, 0%, 98%) 100%
+  );
+}
+
+#left:active,
+#middle:active,
+#right:active {
+  background-image: linear-gradient(
+    0deg,
+    hsl(0, 0%, 100%) 0px,
+    hsl(0, 0%, 95%) 100%
+  );
+}
+
+#middle {
+  --dimensions: 130px;
+  margin-top: 20px;
+}
+
+.inputs {
+  padding-top: 32px;
+}
+
+.inputs button {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 32px;
+  background-image: linear-gradient(
+    180deg,
+    hsl(0, 0%, 100%) 0px,
+    hsl(0, 0%, 98%) 100%
+  );
+  border: 3px solid hsl(345, 3%, 49%);
+  border-radius: 5px;
+  margin: 8px 0;
+}
+
+.inputs button:active {
+  background-image: linear-gradient(
+    0deg,
+    hsl(0, 0%, 100%) 0px,
+    hsl(0, 0%, 95%) 100%
+  );
+}
+
+.upload,
+.start,
+.reset {
+  display: none;
+}
+
+.visible {
+  display: block;
+}

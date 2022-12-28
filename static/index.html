@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Powar WASM Demo</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="device">
+        <canvas id="canvas" width="480" height="320"></canvas>
+        <div class="controls">
+          <button id="left"></button>
+          <button id="middle"></button>
+          <button id="right"></button>
+        </div>
+        <div class="inputs">
+          <div class="upload">
+            <input type="file" id="rom" hidden />
+            <input type="file" id="eeprom" hidden />
+            <button id="uploadRom">Upload ROM</button>
+            <button id="uploadEeprom">Upload EEPROM</button>
+          </div>
+          <div class="start">
+            <button id="start">Start</button>
+          </div>
+          <div class="reset">
+            <button id="resetUploads">Clear ROM and EEPROM</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js" integrity="sha512-+BMamP0e7wn39JGL8nKAZ3yAQT2dL5oaXWr4ZYlTGkKOaoXM/Yj7c4oy50Ngz5yoUutAG17flueD4F6QpTlPng==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

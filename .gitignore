@@ -1,4 +1,22 @@
+# Build Outputs
 powar
 powar.exe
+static/powar.js
+static/powar.wasm
+
+# Pokewalker Files
 rom.bin
 eeprom.bin
+
+# Visual Studio
+.vs/
+out/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+.ninja_deps
+.ninja_log
+build.ninja
+cmake_install.cmake
+Makefile
