@@ -3295,7 +3295,7 @@ int main(int argc, char *argv[]) {
     emscripten_set_main_loop_arg(loop, &render_context, -1, 1);
 #else
     while (!halt) {
-        loop(&render_context);
+        loop((uintptr_t)&render_context);
     }
 #endif
     
